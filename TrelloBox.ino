@@ -5,6 +5,10 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "credentials.h"
+#include "trello_process.h"
+
+#define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  (60*60*12)        /* Time ESP32 will go to sleep (in seconds) */
 
 void m5Setup(void);
 void m5Print(String s);
@@ -56,8 +60,21 @@ void setup() {
   } else {
     Serial.println("Unable to create client");
   }
-  String s = payload.substring(0,10);
-  m5Print(s);
+  processJson(payload);
+  const char* task = getNext();
+  int line = 0;
+  canvas.clear();
+  while(task != NULL)
+  {
+    canvas.drawString(task, 45, line * 40 + 10);
+    line++;
+    task = getNext();
+  }
+  M5.EPD.Clear(true);
+  canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+  delay(5000);
+  esp_deep_sleep_start();
+  
 }
 void loop() {
   delay(1);
@@ -66,21 +83,14 @@ void loop() {
 void m5Setup(void)
 {
   M5.begin(false,false,true,false,true);
-  M5.EPD.SetRotation(90);
+  M5.EPD.SetRotation(0);
   M5.EPD.Clear(true);
   M5.RTC.begin();
-  canvas.createCanvas(540, 960);
+  canvas.createCanvas(960, 540);
   canvas.setTextSize(3);
-  canvas.drawString("Hello World", 45, 350);
+  canvas.drawString("Updating...", 400, 250);
   canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
-}
-
-void m5Print(String s)
-{
-  M5.EPD.Clear(true);
-  canvas.clear();
-  canvas.drawString(s, 45, 350);
-  canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 }
 
 void setClock() {
