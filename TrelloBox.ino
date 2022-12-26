@@ -8,7 +8,7 @@
 #include "trello_process.h"
 
 #define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  (60*60*12)        /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP  (60*60*1)        /* Time ESP32 will go to sleep (in seconds) */
 
 void m5Setup(void);
 void m5Print(String s);
@@ -19,6 +19,7 @@ WiFiMulti WiFiMulti;
 String payload;
 
 void setup() {
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);  
   m5Setup();
   Serial.println("ESP started");
 
@@ -63,10 +64,10 @@ void setup() {
   processJson(payload);
   const char* task = getNext();
   int line = 0;
-  canvas.clear();
+  
   while(task != NULL)
   {
-    canvas.drawString(task, 45, line * 40 + 10);
+    canvas.drawString(task, 10, line * 40 + 10);
     line++;
     task = getNext();
   }
@@ -82,12 +83,15 @@ void loop() {
 
 void m5Setup(void)
 {
-  M5.begin(false,false,true,false,true);
+  M5.begin(false,true,true,false,true);
   M5.EPD.SetRotation(0);
   M5.EPD.Clear(true);
   M5.RTC.begin();
+  canvas.loadFont("/ArialBlack.ttf", SD);
   canvas.createCanvas(960, 540);
-  canvas.setTextSize(3);
+  canvas.createRender(32, 1024);
+  canvas.setTextSize(32);
+  canvas.setTextColor(15);
   canvas.drawString("Updating...", 400, 250);
   canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
@@ -108,6 +112,7 @@ void setClock() {
   Serial.println();
   struct tm timeinfo;
   gmtime_r(&nowSecs, &timeinfo);
-  Serial.print(F("Current time: "));
-  Serial.print(asctime(&timeinfo));
+  canvas.clear();
+  canvas.drawString("Last updated:", 10, 500);
+  canvas.drawString(asctime(&timeinfo), 250, 500);
 }
