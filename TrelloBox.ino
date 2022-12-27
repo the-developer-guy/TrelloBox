@@ -7,26 +7,25 @@
 #include "credentials.h"
 #include "trello_process.h"
 #include "m5control.h"
+#include "wirelesscontrol.h"
 
 #define uS_TO_S_FACTOR 1000000ULL    /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP (60 * 60 * 12) /* Time ESP32 will go to sleep (in seconds) */
+#define WIFI_CONNECT_TIMEOUT_MILLIS (10000)
 
 M5EPD_Canvas canvas(&M5.EPD);
-WiFiMulti WiFiMulti;
+WiFiMulti wiFiMulti;
 String payload;
 
-void setup() {
+void setup() 
+{
   m5Setup(M5, canvas, TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  
-  WiFi.mode(WIFI_STA);
-  WiFiMulti.addAP(ssid, password);
-
-  Serial.print("Waiting for WiFi to connect...");
-  while ((WiFiMulti.run() != WL_CONNECTED)) {
-    Serial.print(".");
+  if(wifiConnect(WiFi, wiFiMulti, ssid, password, WIFI_CONNECT_TIMEOUT_MILLIS) == false)
+  {
+    Serial.println("Couldn't connect to WiFi in time!");
+    esp_deep_sleep_start();
   }
-  Serial.println(" connected");
-
+  
   WiFiClientSecure* client = new WiFiClientSecure;
   if (client) {
     client->setCACert(rootCACertificate);
