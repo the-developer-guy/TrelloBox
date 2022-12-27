@@ -13,6 +13,7 @@
 M5EPD_Canvas canvas(&M5.EPD);
 WiFiMulti wiFiMulti;
 String payload;
+JsonProcessor jsonProcessor;
 
 void setup() 
 {
@@ -25,18 +26,22 @@ void setup()
   
   if(getHttpData(trelloApiLink, payload, rootCACertificate) == true)
   {
-    processJson(payload);
-    const char* task = getNext();
-    int line = 0;
-
-    while ((task != NULL) && (line < 12)) 
+    if(jsonProcessor.setJson(payload) == true)
     {
-      canvas.drawString(task, 10, line * 40 + 10);
-      line++;
-      task = getNext();
+      const char* task = jsonProcessor.getNext();
+
+      while ((task != NULL) && (jsonProcessor.getLine() < 12)) 
+      {
+        canvas.drawString(task, 10, jsonProcessor.getLine() * 40);
+        task = jsonProcessor.getNext();
+      }
+      M5.EPD.Clear(true);
+      canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
     }
-    M5.EPD.Clear(true);
-    canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
+    else
+    {
+      Serial.println("Error processing the response JSON!");
+    }
     delay(1000);
   }
   

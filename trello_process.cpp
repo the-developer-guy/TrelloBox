@@ -1,22 +1,28 @@
 #include "trello_process.h"
-#include <ArduinoJson.h>
 
-StaticJsonDocument<50000> doc;
-int counter = 0;
-
-void processJson(String str)
+JsonProcessor::JsonProcessor()
 {
-  DeserializationError error = deserializeJson(doc, str);
-    if (error) {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.f_str());
-    return;
-  }
   counter = 0;
 }
 
-const char* getNext(void)
+bool JsonProcessor::setJson(String str)
 {
+  DeserializationError error = deserializeJson(doc, str);
+  if (error) 
+  {
+    counter = -1;
+    return false;
+  }
+  counter = 0;
+  return true;
+}
+
+const char* JsonProcessor::getNext(void)
+{
+  if(counter == -1)
+  {
+    return NULL;
+  }
   const char* value = doc[counter]["name"];
   counter++;
   return value;
